@@ -1,0 +1,6 @@
+int shmget(key_t key,  int size,  int shmflg)
+
+key: IPC_PRIVATE(有亲缘关系)   OR  ftok()的返回值（可以实现无亲缘关系的）
+
+void *shmat(int shmid, const void *shmaddr, int shmflg);
+·
