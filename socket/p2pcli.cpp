@@ -6,6 +6,14 @@
 #include<stdlib.h>
 #include<errno.h>
 #include<string.h> 
+#include<signal.h>
+
+void handler(int signum)
+{
+	printf("recv a sig=%d\n, parent close\n", signum);
+	exit(EXIT_SUCCESS);
+}
+
 int  main(int argc, char **argv)
 {
 	if (argc < 3)
@@ -43,7 +51,7 @@ int  main(int argc, char **argv)
 	if (pid == -1)
 		perror("fork fail\n");
 	//parent send,  child recv
-	if (pid > 0)
+	if (pid == 0)
 	{
 		char recvbuf[1024] = {0};//初始化接收缓存 
 		while(1)
@@ -62,11 +70,13 @@ int  main(int argc, char **argv)
 		    }
 		    fputs(recvbuf, stdout);
 		}
+		kill(getppid(), SIGUSR1);
 		exit(EXIT_SUCCESS); 
 	}
-	if (pid == 0)
+	if (pid > 0)
 	{   
-	    char sendbuf[1024] = {0};  //初始化发送缓存 
+	    signal(SIGUSR1, handler);
+		char sendbuf[1024] = {0};  //初始化发送缓存 
 		while (fgets(sendbuf, sizeof(sendbuf), stdin) != NULL)
 		{
 			write(sock, sendbuf, strlen(sendbuf));
