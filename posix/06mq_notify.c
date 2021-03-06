@@ -39,7 +39,7 @@ struct sigevent sigev;
 void handle_sigusr1(int sig)
 {
 	
-    mq_notify(mqid, &sigev);
+    mq_notify(mqid, &sigev);   //重新注册，需要放在消息队列读出消息之前 
 	STU stu;
     unsigned prio;
 	if(mq_receive(mqid, (char*)&stu, size, &prio)==-1)  //长度要指定每条消息的最大值 
@@ -53,8 +53,8 @@ int main(int argc, char *argv[])
 {
 		
 	
-	mqid = mq_open("/abc", O_RDONLY);
-	if (mqid == (mqd_t)-1)
+	mqid = mq_open("/abc", O_RDONLY);  //文件要已/开头 
+	if (mqid == (mqd_t)-1)  //-1强制转换成mqd_t 
 	{
 		ERR_EXIT("mq_open");
 	}
