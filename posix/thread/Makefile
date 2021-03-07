@@ -1,7 +1,7 @@
 .PHONY:clean all
 CC=gcc
 CFLAGS=-Wall -g
-BIN=01thread echosrv tsd
+BIN=01thread echosrv tsd pctest
 all:$(BIN)
 %.o:%.c
 	$(CC) $(CFLAGS) -c $< -o $@
@@ -15,6 +15,10 @@ echosrv:echosrv.o
 
 tsd:tsd.o
 	$(CC) $(CFLAGS) $^ -o $@ -lpthread
+
+pctest:pctest.o
+	$(CC) $(CFLAGS) $^ -o $@ -lpthread
+
 
 clean:
 	rm -f *.o $(BIN)

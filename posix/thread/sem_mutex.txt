@@ -1,0 +1,24 @@
+posix信号量：
+
+对有名信号量
+sem_open     
+sem_close
+sem_unlink    
+
+无名信号量
+sem_init    初始化无名信号量
+sem_destroy  
+
+
+pv操作    有名无名都可用
+sem_wait   v
+sem_post   p
+
+无名信号量也可应用于不同进程的多个线程间的通信，信号量需要存放在共享内存中
+
+
+posix互斥锁
+pthread_mutex_init
+pthread_mutex_lock
+pthread_mutex_unlock
+pthread_mutex_destroy
