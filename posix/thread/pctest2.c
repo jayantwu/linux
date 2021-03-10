@@ -91,9 +91,9 @@ consumer 1 begin wait a condition...    //消费者1进入等待状态并解锁
 producer 0 begin produce product...     //生产者开始生产 
 producer 0 end produce product...
 producer 0 signal...
-consumer 0 end wait a condition...      //消费者0抢到了锁，条件满足开始消费 
+consumer 0 end wait a condition...      //消费者0抢到了锁，条件满足开始消费    //while循环的原因
 consumer 0 begin consume product...     // 
-consumer 1 begin wait a condition...    //消费者1的wait函数返回发现条件还是没满足又进入了的等待状态 ，释放了锁 
+consumer 1 begin wait a condition...    //消费者1的wait函数返回发现条件还是没满足又进入了的等待状态（被虚假唤醒了） ，释放了锁 
 consumer 0 begin wait a condition...    //消费者0加锁但是条件不满足，进入等待状态 并解锁 
 producer 0 begin produce product...     //生产者加锁生产 
 producer 0 end produce product...
