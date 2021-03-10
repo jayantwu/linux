@@ -27,11 +27,11 @@ int nready = 0;
 void* consume(void *arg) {
 	int num = (long)arg;
 	while(1) {
-		pthread_mutex_lock(&g_mutex);   //Óöµ½ÒÑ¼ÓËøÊ±£¬×èÈûÔÙÕâÀï 
-		while(nready == 0) {//Ìõ¼ş²»Âú×ãÔòµÈ´ı 
-			//½âËø£¬µÈ´ıÆäËûÏß³Ì¸Ä±änreadyµÄÖµ 
+		pthread_mutex_lock(&g_mutex);   //é‡åˆ°å·²åŠ é”æ—¶ï¼Œé˜»å¡å†è¿™é‡Œ 
+		while(nready == 0) {//æ¡ä»¶ä¸æ»¡è¶³åˆ™ç­‰å¾… 
+			//è§£é”ï¼Œç­‰å¾…å…¶ä»–çº¿ç¨‹æ”¹å˜nreadyçš„å€¼ 
 			printf("consumer %d begin wait a condition...\n", num);
-			pthread_cond_wait(&g_cond, &g_mutex);   //½âËøÖ®ºóÄÄ¸öÏß³ÌÏÈ¼ÓËø£¿waitÊÕµ½ĞÅºÅÖ®ºóÒªÖØĞÂ¼ÓËø £¬²¢·µ»Ø 
+			pthread_cond_wait(&g_cond, &g_mutex);   //è§£é”ä¹‹åå“ªä¸ªçº¿ç¨‹å…ˆåŠ é”ï¼Ÿwaitæ”¶åˆ°ä¿¡å·ä¹‹åè¦é‡æ–°åŠ é” ï¼Œå¹¶è¿”å› 
 		}
 		printf("consumer %d end wait a condition...\n", num);
         printf("consumer %d begin consume product...\n", num);
@@ -52,7 +52,7 @@ void* produce(void *arg) {
 		++nready;
         printf("producer %d end produce product...\n", num);
 		printf("producer %d signal...\n", num);
-		pthread_cond_signal(&g_cond);  //¼¤»îÏß³Ì 
+		pthread_cond_signal(&g_cond);  //æ¿€æ´»çº¿ç¨‹ ,è§£é”ï¼Œå‘é€šçŸ¥ï¼Œä½†æ˜¯ä¸­é—´è¿‡ç¨‹ä¸­å¯èƒ½æœ‰å…¶ä»–æ¶ˆè´¹è€…å…ˆåŠ é”ï¼ˆå› ä¸ºæ˜¯éåŸå­æ“ä½œï¼‰ï¼Œå¹¶æ¶ˆè´¹äº†ï¼Œå¯¼è‡´å½“å‰æ¶ˆè´¹è€…è¢«å”¤é†’ä¹‹åä»ç„¶ä¸æ»¡è¶³æ¡ä»¶ï¼ˆè™šå‡å”¤é†’ï¼‰
 		pthread_mutex_unlock(&g_mutex);
 		sleep(5);
 	}
@@ -64,13 +64,13 @@ int main() {
 	int i;
 	
 	pthread_mutex_init(&g_mutex, NULL);
-	pthread_cond_init(&g_cond, NULL);  //³õÊ¼»¯Ìõ¼ş±äÁ¿ 
+	pthread_cond_init(&g_cond, NULL);  //åˆå§‹åŒ–æ¡ä»¶å˜é‡ 
 	
 
 	for(i = 0; i < CONSUMERS_COUNT; ++i)
 		pthread_create(&g_thread[i], NULL, consume, (void*)(long)i);
 		
-	//sleep(1);   //Ïû·ÑÕß´´½¨³öÀ´sleep 1ÃëÔÙ´´½¨Éú²úÕß£¬±£Ö¤ÄÜ½øÈëµÈ´ı×´Ì¬ 
+	//sleep(1);   //æ¶ˆè´¹è€…åˆ›å»ºå‡ºæ¥sleep 1ç§’å†åˆ›å»ºç”Ÿäº§è€…ï¼Œä¿è¯èƒ½è¿›å…¥ç­‰å¾…çŠ¶æ€ 
 
 	for(i = 0; i < PRODUCERS_COUNT; ++i)
 		pthread_create(&g_thread[CONSUMERS_COUNT + i], NULL, produce, (void*)(long)i);	
@@ -87,21 +87,21 @@ int main() {
 
 /* 
 @localhost thread]$ ./pctest2
-consumer 1 begin wait a condition...    //Ïû·ÑÕß1½øÈëµÈ´ı×´Ì¬²¢½âËø 
-producer 0 begin produce product...     //Éú²úÕß¿ªÊ¼Éú²ú 
+consumer 1 begin wait a condition...    //æ¶ˆè´¹è€…1è¿›å…¥ç­‰å¾…çŠ¶æ€å¹¶è§£é” 
+producer 0 begin produce product...     //ç”Ÿäº§è€…å¼€å§‹ç”Ÿäº§ 
 producer 0 end produce product...
 producer 0 signal...
-consumer 0 end wait a condition...      //Ïû·ÑÕß0ÇÀµ½ÁËËø£¬Ìõ¼şÂú×ã¿ªÊ¼Ïû·Ñ 
+consumer 0 end wait a condition...      //æ¶ˆè´¹è€…0æŠ¢åˆ°äº†é”ï¼Œæ¡ä»¶æ»¡è¶³å¼€å§‹æ¶ˆè´¹ 
 consumer 0 begin consume product...     // 
-consumer 1 begin wait a condition...    //Ïû·ÑÕß1µÄwaitº¯Êı·µ»Ø·¢ÏÖÌõ¼ş»¹ÊÇÃ»Âú×ãÓÖ½øÈëÁËµÄµÈ´ı×´Ì¬ £¬ÊÍ·ÅÁËËø 
-consumer 0 begin wait a condition...    //Ïû·ÑÕß0¼ÓËøµ«ÊÇÌõ¼ş²»Âú×ã£¬½øÈëµÈ´ı×´Ì¬ ²¢½âËø 
-producer 0 begin produce product...     //Éú²úÕß¼ÓËøÉú²ú 
+consumer 1 begin wait a condition...    //æ¶ˆè´¹è€…1çš„waitå‡½æ•°è¿”å›å‘ç°æ¡ä»¶è¿˜æ˜¯æ²¡æ»¡è¶³åˆè¿›å…¥äº†çš„ç­‰å¾…çŠ¶æ€ ï¼Œé‡Šæ”¾äº†é” 
+consumer 0 begin wait a condition...    //æ¶ˆè´¹è€…0åŠ é”ä½†æ˜¯æ¡ä»¶ä¸æ»¡è¶³ï¼Œè¿›å…¥ç­‰å¾…çŠ¶æ€ å¹¶è§£é” 
+producer 0 begin produce product...     //ç”Ÿäº§è€…åŠ é”ç”Ÿäº§ 
 producer 0 end produce product...
 producer 0 signal...
-consumer 1 end wait a condition...      //Ïû·ÑÕß1ÔÙÏß³ÌµÈ´ı¶ÓÁĞÇ°Ãæ£¬Ê×ÏÈ »ñµÃËø½øĞĞÏû·Ñ 
+consumer 1 end wait a condition...      //æ¶ˆè´¹è€…1å†çº¿ç¨‹ç­‰å¾…é˜Ÿåˆ—å‰é¢ï¼Œé¦–å…ˆ è·å¾—é”è¿›è¡Œæ¶ˆè´¹ 
 consumer 1 begin consume product...
-consumer 1 begin wait a condition...    //Ïû·ÑÍêÖ®ºóÔÙ´Î½øÈëµÈ´ı×´Ì¬£¬½âËø 
-producer 0 begin produce product...     //Éú²úÕßÉú²ú 
+consumer 1 begin wait a condition...    //æ¶ˆè´¹å®Œä¹‹åå†æ¬¡è¿›å…¥ç­‰å¾…çŠ¶æ€ï¼Œè§£é” 
+producer 0 begin produce product...     //ç”Ÿäº§è€…ç”Ÿäº§ 
 producer 0 end produce product...
 producer 0 signal...
 consumer 0 end wait a condition...
