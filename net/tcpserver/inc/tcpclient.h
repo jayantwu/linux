@@ -27,7 +27,7 @@ class tcpclient {
 
         
     public:
-        tcpclient(){ 
+        tcpclient(): m_clientfd(-1) { 
             // todo
         }
         ~tcpclient(){

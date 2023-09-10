@@ -7,7 +7,7 @@ using namespace std;
 int main(int argc, char** argv)
 {
     tcpclient client;
-
+    cout << "start ...." << endl;
     if (client.connect(argv[1], atoi(argv[2])) == false)
     {
         perror("connect()");

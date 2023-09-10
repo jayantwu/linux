@@ -30,6 +30,12 @@ int main(int argc, char** argv)
         return -1;
     }
 
+    // listen
+    if (listen(listenfd, 5) != 0) {
+        perror("listen");
+        return -1;
+    }
+
     struct sockaddr_in peer_addr;
     socklen_t peerlen = sizeof(peer_addr);
     int clientfd = accept(listenfd, (struct sockaddr*)(&peer_addr), &peerlen);
