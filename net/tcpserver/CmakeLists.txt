@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.20)
 
 project(tcpserver)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 
 
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/build/bin)
@@ -10,11 +10,17 @@ message(STATUS ${CMAKE_CURRENT_SOURCE_DIR})
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/inc)
 
+set(LIBRARY_OUTPUT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/build/lib)
+add_library(client SHARED src/tcpclient.cpp)
+add_library(server SHARED src/tcpserver.cpp)
+
 set(SERVER tcpserver)
-add_executable(${SERVER} src/runtcpserver.cpp src/tcpserver.cpp)
+add_executable(${SERVER} src/runtcpserver.cpp)
+target_link_libraries(${SERVER} server)
 
 set(CLIENT tcpclient)
-add_executable(${CLIENT} src/runtcpclient.cpp src/tcpclient.cpp)
+add_executable(${CLIENT} src/runtcpclient.cpp )
+target_link_libraries(${CLIENT} client)
 
 
 add_subdirectory(test)

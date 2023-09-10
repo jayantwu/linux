@@ -1,0 +1,1 @@
+test member function use google test framework
