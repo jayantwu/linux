@@ -32,9 +32,16 @@ class tcpclient {
         }
         ~tcpclient(){
             //to do
+            close();
         }
 
         bool connect(const string & ip, const uint16_t port);
+
+        bool send(const string &buffer);
+
+        bool recv(string & buffer, size_t maxlen);
+
+        bool close();
 
         int get_client_fd() { return m_clientfd; }
 

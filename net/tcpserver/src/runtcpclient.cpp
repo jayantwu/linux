@@ -7,29 +7,27 @@ using namespace std;
 int main(int argc, char** argv)
 {
     tcpclient client;
-    cout << "start ...." << endl;
+
     if (client.connect(argv[1], atoi(argv[2])) == false)
     {
         perror("connect()");
         return -1;
     }
     
-    char buffer[1024];
+    string buffer;
     for (int i = 0; i < 10; i++) {
         int iret;
-        memset(buffer, 0, sizeof(buffer));
-        sprintf(buffer, "client send data %d", i);
-        if ((iret = send(client.get_client_fd(), buffer, strlen(buffer), 0)) <= 0) {
+        buffer = "client send data " + to_string(i);
+        if (client.send(buffer) == false) {
             perror("send");
             break;
         }
 
         cout << "send: " << buffer << endl;
 
-        memset(buffer, 0, sizeof(buffer));
 
-        if ((iret = recv(client.get_client_fd(), buffer, sizeof(buffer), 0)) <= 0) {
-            cout << "iret=" << iret << endl;
+        if (client.recv(buffer, 1024) == false) {
+            perror("recv()");
             break;
         }
 
@@ -38,7 +36,7 @@ int main(int argc, char** argv)
         sleep(1);
     }
 
-    close(client.get_client_fd());
+    // will close by dctor
     
     return 0;
 }
