@@ -10,58 +10,31 @@ int main(int argc, char** argv)
         return -1;
     }
     
-    int listenfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (listenfd == -1) {
-        perror("socket");
+    tcpserver server;
+    if (server.init_server(atoi(argv[1])) == false) {
+        perror("init_server()");
         return -1;
     }
 
-    struct sockaddr_in servaddr;
-    memset(&servaddr, 0, sizeof(servaddr));
-    servaddr.sin_family = AF_INET;
-    servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    servaddr.sin_port = htons(atoi(argv[1]));
-
-
-    // bind ip and port
-    if (bind(listenfd, (struct sockaddr*)&servaddr, sizeof(servaddr)) != 0) {
-        perror("bind");
-        close(listenfd);
+    if (server.accept() == -1) {
+        perror("accept()");
         return -1;
     }
 
-    // listen
-    if (listen(listenfd, 5) != 0) {
-        perror("listen");
-        return -1;
-    }
-
-    struct sockaddr_in peer_addr;
-    socklen_t peerlen = sizeof(peer_addr);
-    int clientfd = accept(listenfd, (struct sockaddr*)(&peer_addr), &peerlen);
-    if (clientfd == -1) {
-        perror("accept");
-        close(clientfd);
-        return -1;
-    }
-
-    cout << "client connected." << endl;
+    cout << "client connected. client ip: " << server.clientip() << endl;
 
     char buffer[1024];
     while (true) {
-        int iret;
-        memset(buffer, 0, sizeof(buffer));
-
-        if ((iret = recv(clientfd, buffer, sizeof(buffer), 0)) <= 0) {
-            cout << "iret=" << iret << endl;
+        string buffer;
+        if (server.recv(buffer, 1024) == false) {
+            perror("recv");
             break;
         }
-
         cout << "recv: " << buffer << endl;
 
-        strcpy(buffer, "server recv ok!");
+        buffer = "server recv ok!";
 
-        if ((iret = send(clientfd, buffer, strlen(buffer), 0)) <= 0) {
+        if (server.send(buffer) == false) {
             perror("send");
             break;
         }
@@ -69,13 +42,6 @@ int main(int argc, char** argv)
         cout << "send: " << buffer;
 
     }
-
-    close(listenfd);
-    close(clientfd);
-
-    return 0;
-
-
 
     return 0;
 }
