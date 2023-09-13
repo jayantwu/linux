@@ -15,33 +15,45 @@ int main(int argc, char** argv)
         perror("init_server()");
         return -1;
     }
-
-    if (server.accept() == -1) {
-        perror("accept()");
-        return -1;
-    }
-
-    cout << "client connected. client ip: " << server.clientip() << endl;
-
-    char buffer[1024];
     while (true) {
-        string buffer;
-        if (server.recv(buffer, 1024) == false) {
-            perror("recv");
-            break;
-        }
-        cout << "recv: " << buffer << endl;
-
-        buffer = "server recv ok!";
-
-        if (server.send(buffer) == false) {
-            perror("send");
-            break;
+        if (server.accept() == -1) {
+            perror("accept()");
+            return -1;
         }
 
-        cout << "send: " << buffer;
+        cout << "client connected. client ip: " << server.clientip() << endl;
+        
+        int pid = fork();
+        if (pid == -1) {
+            perror("fork()");
+            return -1;
+        }
+        if (pid > 0) {
+            server.closeclient();
+            continue;  // parent process
+        }
+        
+        // child process
+        server.closelisten();
 
+        while (true) {
+            string buffer;
+            if (server.recv(buffer, 1024) == false) {
+                perror("recv");
+                break;
+            }
+            cout << "recv: " << buffer << endl;
+
+            buffer = "server recv ok!";
+
+            if (server.send(buffer) == false) {
+                perror("send");
+                break;
+            }
+
+            cout << "send: " << buffer;
+
+        }
+        return 0;
     }
-
-    return 0;
 }
