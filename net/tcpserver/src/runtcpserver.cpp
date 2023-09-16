@@ -1,7 +1,18 @@
 #include "tcpserver.h"
 #include <iostream>
+#include <signal.h>
 
 using namespace std;
+
+void sig_child(int signo)
+{
+    pid_t pid;
+    int stat;
+    while ( (pid = waitpid(-1, &stat, WNOHANG)) > 0 ) {
+        cout << "child " <<  pid << " termianted." << endl;
+    }
+    return;
+}
 
 int main(int argc, char** argv)
 {
@@ -15,6 +26,9 @@ int main(int argc, char** argv)
         perror("init_server()");
         return -1;
     }
+
+    signal(SIGCHLD, sig_child);
+
     while (true) {
         if (server.accept() == -1) {
             perror("accept()");
