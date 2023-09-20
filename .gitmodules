@@ -1,0 +1,3 @@
+[submodule "net/pine"]
+	path = net/pine
+	url = https://github.com/jayantwu/pine.git
