@@ -273,7 +273,7 @@ will get test4.o and test5.o
 
 
 ```bash
-[root@9d0875627904 read-book]# readelf -s test4.o
+[root@9d0875627904 read-book]# readelf -s test4.o   # 查看符号表
 
 Symbol table '.symtab' contains 17 entries:
    Num:    Value          Size Type    Bind   Vis      Ndx Name
@@ -295,4 +295,190 @@ Symbol table '.symtab' contains 17 entries:
     15: 0000000000000000     0 NOTYPE  GLOBAL DEFAULT  UND printf  # 在别的目标文件
     16: 0000000000000000     0 NOTYPE  GLOBAL DEFAULT  UND fun1    # 在别的目标文件
 
+```
+
+
+
+
+静态链接
+```c
+// a.c
+extern int shared;
+int main()
+{
+    int a = 100;
+    swap(&a, &shared);
+    return 0;
+}
+```
+```c
+// b.c
+int shared = 1;
+void swap(int *a, int * b)
+{
+    *a ^= *b ^= *a ^= *b;
+}
+```
+
+`gcc -c a.c b.c`
+
+vma 为 virtual memory address, 即虚拟地址
+LMA 为 load memory address 即加载地址
+```bash
+[root@9d0875627904 read-book]# objdump -h a.o
+
+a.o:     file format elf64-littleaarch64
+
+Sections:
+Idx Name          Size      VMA               LMA               File off  Algn
+  0 .text         00000030  0000000000000000  0000000000000000  00000040  2**2    # 链接之前 ， 虚拟地址都是0， 未分配
+                  CONTENTS, ALLOC, LOAD, RELOC, READONLY, CODE
+  1 .data         00000000  0000000000000000  0000000000000000  00000070  2**0
+                  CONTENTS, ALLOC, LOAD, DATA
+  2 .bss          00000000  0000000000000000  0000000000000000  00000070  2**0
+                  ALLOC
+  3 .comment      0000002d  0000000000000000  0000000000000000  00000070  2**0
+                  CONTENTS, READONLY
+  4 .note.GNU-stack 00000000  0000000000000000  0000000000000000  0000009d  2**0
+                  CONTENTS, READONLY
+  5 .eh_frame     00000038  0000000000000000  0000000000000000  000000a0  2**3
+                  CONTENTS, ALLOC, LOAD, RELOC, READONLY, DATA
+[root@9d0875627904 read-book]# objdump -h b.o
+
+b.o:     file format elf64-littleaarch64
+
+Sections:
+Idx Name          Size      VMA               LMA               File off  Algn
+  0 .text         0000006c  0000000000000000  0000000000000000  00000040  2**2
+                  CONTENTS, ALLOC, LOAD, READONLY, CODE
+  1 .data         00000004  0000000000000000  0000000000000000  000000ac  2**2
+                  CONTENTS, ALLOC, LOAD, DATA
+  2 .bss          00000000  0000000000000000  0000000000000000  000000b0  2**0
+                  ALLOC
+  3 .comment      0000002d  0000000000000000  0000000000000000  000000b0  2**0
+                  CONTENTS, READONLY
+  4 .note.GNU-stack 00000000  0000000000000000  0000000000000000  000000dd  2**0
+                  CONTENTS, READONLY
+  5 .eh_frame     00000030  0000000000000000  0000000000000000  000000e0  2**3
+                  CONTENTS, ALLOC, LOAD, RELOC, READONLY, DATA
+
+
+```
+
+`ld a.o b.o -e main -o ab`
+
+```bash
+[root@9d0875627904 read-book]# objdump -h ab
+
+ab:     file format elf64-littleaarch64
+
+Sections:
+Idx Name          Size      VMA               LMA               File off  Algn
+  0 .text         0000009c  0000000000400120  0000000000400120  00000120  2**2  #链接后 ， 虚拟地址分配好了
+                  CONTENTS, ALLOC, LOAD, READONLY, CODE
+  1 .eh_frame     00000050  00000000004001c0  00000000004001c0  000001c0  2**3
+                  CONTENTS, ALLOC, LOAD, READONLY, DATA
+  2 .data         00000004  000000000041ffe8  000000000041ffe8  0000ffe8  2**2
+                  CONTENTS, ALLOC, LOAD, DATA
+  3 .comment      0000002c  0000000000000000  0000000000000000  0000ffec  2**0
+                  CONTENTS, READONLY
+```
+
+
+
+看一下 a.o 反汇编结果
+
+```bash
+[root@9d0875627904 read-book]# objdump -d a.o
+
+a.o:     file format elf64-littleaarch64
+
+
+Disassembly of section .text:
+
+0000000000000000 <main>:
+   0:   a9be7bfd        stp     x29, x30, [sp, #-32]!
+   4:   910003fd        mov     x29, sp
+   8:   52800c80        mov     w0, #0x64                       // #100
+   c:   b9001fe0        str     w0, [sp, #28]
+  10:   910073e2        add     x2, sp, #0x1c
+  14:   90000000        adrp    x0, 0 <shared>
+  18:   91000001        add     x1, x0, #0x0
+  1c:   aa0203e0        mov     x0, x2
+  20:   94000000        bl      0 <swap>
+  24:   52800000        mov     w0, #0x0                        // #0
+  28:   a8c27bfd        ldp     x29, x30, [sp], #32
+  2c:   d65f03c0        ret
+```
+
+让chatgpt来解释一下吧！
+
+```
+这是 ARM64（也被称为 AArch64）的汇编代码。让我们一起分析一下：
+
+- `stp x29, x30, [sp, #-32]!`：这将64位寄存器`x29`和`x30`的值存入堆栈。`!`表示它是一个预索引存储，也就是说在存储之前会更新堆栈指针`sp`。
+
+- `mov x29, sp`：这将堆栈指针移动到`x29`（在函数调用中经常用作帧指针）。
+
+- `mov w0, #0x64`：将立即值`0x64`（十进制为100）移动到32位寄存器`w0`。
+
+- `str w0, [sp, #28]`：将`w0`的值存储到由`sp+28`指定的内存位置。
+
+- `add x2, sp, #0x1c`：将`0x1c`加到堆栈指针`sp`上，并将结果存储在`x2`。
+
+- `adrp x0, 0 <shared>`：这个指令用于将一页的地址加载到寄存器中，在这里是`x0`。
+
+- `add x1, x0, #0x0`：将0加到`x0`并将结果存储在`x1`。
+
+- `mov x0, x2`：将`x2`的值移动到`x0`。
+
+- `bl 0 <swap>`：这是一个带链接的分支。它调用地址为0的函数，这里标记为`swap`。链接意味着它还将返回地址存储在`x30`中。
+
+- `mov w0, #0x0`：将立即值0移动到`w0`。
+
+- `ldp x29, x30, [sp], #32`：从堆栈中加载寄存器`x29`和`x30`对的值，然后将堆栈指针加32。
+
+- `ret`：从函数返回。
+
+这似乎是一个简化的函数，它在堆栈上准备一些值，然后调用另一个名为`swap`的函数。`swap`函数返回后，它执行一些清理工作，然后返回。具体的目的会取决于`swap`函数的功能。
+```
+
+
+
+装载相关
+
+```bash
+[root@9d0875627904 read-book]# readelf -l  ab
+
+Elf file type is EXEC (Executable file)
+Entry point 0x400120
+There are 4 program headers, starting at offset 64
+
+Program Headers:
+  Type           Offset             VirtAddr           PhysAddr
+                 FileSiz            MemSiz              Flags  Align
+  LOAD           0x0000000000000000 0x0000000000400000 0x0000000000400000
+                 0x0000000000000210 0x0000000000000210  R E    0x10000
+  LOAD           0x000000000000ffe8 0x000000000041ffe8 0x000000000041ffe8
+                 0x0000000000000004 0x0000000000000004  RW     0x10000
+  GNU_STACK      0x0000000000000000 0x0000000000000000 0x0000000000000000
+                 0x0000000000000000 0x0000000000000000  RW     0x10
+  GNU_RELRO      0x000000000000ffe8 0x000000000041ffe8 0x000000000041ffe8
+                 0x0000000000000004 0x0000000000000018  R      0x1
+
+ Section to Segment mapping:  # 具有相同属性的section 被映射到一个segment
+  Segment Sections...
+   00     .text .eh_frame 
+   01     .data 
+   02     
+   03     .data 
+
+```
+
+
+注意： 
+```bash
+[root@9d0875627904 read-book]# readelf -l  a.o     // 目标文件没有程序头
+
+There are no program headers in this file.
 ```
