@@ -455,7 +455,7 @@ Entry point 0x400120
 There are 4 program headers, starting at offset 64
 
 Program Headers:
-  Type           Offset             VirtAddr           PhysAddr
+  Type           Offset             VirtAddr           PhysAddr   # 这部分对应了一个 文件头结构体
                  FileSiz            MemSiz              Flags  Align
   LOAD           0x0000000000000000 0x0000000000400000 0x0000000000400000
                  0x0000000000000210 0x0000000000000210  R E    0x10000
@@ -474,11 +474,118 @@ Program Headers:
    03     .data 
 
 ```
-
+`VirtAddr`为segment 的第一个字节在进程虚拟地址空间的起始位置
+`PhysAddr`为 物理装载地址， 即LMA（load memory address）
+这两个值一般一样
 
 注意： 
 ```bash
 [root@9d0875627904 read-book]# readelf -l  a.o     // 目标文件没有程序头
 
 There are no program headers in this file.
+```
+
+
+
+
+动态链接
+terminal 1
+```bash
+[root@9d0875627904 build]# ./bin/run_main &
+[1] 236
+[root@9d0875627904 build]# hello world, new
+```
+
+terminal 2
+```bash
+[root@9d0875627904 local]# cat /proc/236/maps 
+00400000-00401000 r-xp 00000000 00:a1 11792410                           /usr/local/wujiayang/linux/read-book/test_dynamic_link/build/bin/run_main
+0041f000-00420000 r--p 0000f000 00:a1 11792410                           /usr/local/wujiayang/linux/read-book/test_dynamic_link/build/bin/run_main
+00420000-00421000 rw-p 00010000 00:a1 11792410                           /usr/local/wujiayang/linux/read-book/test_dynamic_link/build/bin/run_main
+31e71000-31e92000 rw-p 00000000 00:00 0                                  [heap]
+ffffbd1eb000-ffffbd345000 r-xp 00000000 fe:01 3152546                    /usr/lib64/libc-2.28.so
+ffffbd345000-ffffbd357000 ---p 0015a000 fe:01 3152546                    /usr/lib64/libc-2.28.so
+ffffbd357000-ffffbd35b000 r--p 0015c000 fe:01 3152546                    /usr/lib64/libc-2.28.so
+ffffbd35b000-ffffbd35d000 rw-p 00160000 fe:01 3152546                    /usr/lib64/libc-2.28.so
+ffffbd35d000-ffffbd360000 rw-p 00000000 00:00 0 
+ffffbd360000-ffffbd373000 r-xp 00000000 fe:01 3152400                    /usr/lib64/libgcc_s-8-20210514.so.1
+ffffbd373000-ffffbd38f000 ---p 00013000 fe:01 3152400                    /usr/lib64/libgcc_s-8-20210514.so.1
+ffffbd38f000-ffffbd390000 r--p 0001f000 fe:01 3152400                    /usr/lib64/libgcc_s-8-20210514.so.1
+ffffbd390000-ffffbd391000 rw-p 00020000 fe:01 3152400                    /usr/lib64/libgcc_s-8-20210514.so.1
+ffffbd391000-ffffbd43e000 r-xp 00000000 fe:01 3152550                    /usr/lib64/libm-2.28.so
+ffffbd43e000-ffffbd450000 ---p 000ad000 fe:01 3152550                    /usr/lib64/libm-2.28.so
+ffffbd450000-ffffbd451000 r--p 000af000 fe:01 3152550                    /usr/lib64/libm-2.28.so
+ffffbd451000-ffffbd452000 rw-p 000b0000 fe:01 3152550                    /usr/lib64/libm-2.28.so
+ffffbd452000-ffffbd5cb000 r-xp 00000000 fe:01 3152735                    /usr/lib64/libstdc++.so.6.0.25
+ffffbd5cb000-ffffbd5e6000 ---p 00179000 fe:01 3152735                    /usr/lib64/libstdc++.so.6.0.25
+ffffbd5e6000-ffffbd5f2000 r--p 00184000 fe:01 3152735                    /usr/lib64/libstdc++.so.6.0.25
+ffffbd5f2000-ffffbd5f3000 rw-p 00190000 fe:01 3152735                    /usr/lib64/libstdc++.so.6.0.25
+ffffbd5f3000-ffffbd5f6000 rw-p 00000000 00:00 0 
+ffffbd5f6000-ffffbd5f7000 r-xp 00000000 00:a1 11780443                   /usr/local/wujiayang/linux/read-book/test_dynamic_link/build/lib/libhellolib.so  #w为什么分成了4个segment
+ffffbd5f7000-ffffbd615000 ---p 00001000 00:a1 11780443                   /usr/local/wujiayang/linux/read-book/test_dynamic_link/build/lib/libhellolib.so
+ffffbd615000-ffffbd616000 r--p 0000f000 00:a1 11780443                   /usr/local/wujiayang/linux/read-book/test_dynamic_link/build/lib/libhellolib.so
+ffffbd616000-ffffbd617000 rw-p 00010000 00:a1 11780443                   /usr/local/wujiayang/linux/read-book/test_dynamic_link/build/lib/libhellolib.so
+ffffbd617000-ffffbd63a000 r-xp 00000000 fe:01 3152539                    /usr/lib64/ld-2.28.so
+ffffbd64a000-ffffbd64e000 rw-p 00000000 00:00 0 
+ffffbd651000-ffffbd653000 rw-p 00000000 00:00 0 
+ffffbd653000-ffffbd655000 r--p 00000000 00:00 0                          [vvar]
+ffffbd655000-ffffbd656000 r-xp 00000000 00:00 0                          [vdso]
+ffffbd656000-ffffbd657000 r--p 0002f000 fe:01 3152539                    /usr/lib64/ld-2.28.so   # 动态连接器
+ffffbd657000-ffffbd659000 rw-p 00030000 fe:01 3152539                    /usr/lib64/ld-2.28.so
+fffff4981000-fffff49a2000 rw-p 00000000 00:00 0                          [stack]
+
+```
+
+
+来自chatgpt的解释
+```
+这四行代表了动态链接库`libhellolib.so`在进程内存中的不同区段。每个区段有其自己的权限并服务于不同的目的。具体来说：
+
+- 第一行：`r-xp`这个内存段是可读和可执行的。动态链接库的代码部分通常在这个区段。
+
+- 第二行：`---p`这个内存段没有任何访问权限（既不可读，也不可写，也不可执行）。这通常是两个不同权限的区段之间的一个“保护页”，用于阻止内存访问溢出到不应访问的区段。
+
+- 第三行：`r--p`这个内存段是只读的。这里通常存储了库的只读数据，例如常量或者字符串字面量。
+
+- 第四行：`rw-p`这个内存段是可读写的。这里通常存储了库的读写数据，例如全局变量。
+
+这些区段的存在使得操作系统能够更好地管理内存，例如防止代码被意外修改（代码区段不可写），防止数据被执行（数据区段不可执行），等等。同时，这些信息也非常有利于开发者进行调试和性能优化。
+```
+
+
+查看动态链接库的装载属性
+```bash
+[root@9d0875627904 test_dynamic_link]# readelf build/lib/libhellolib.so  -l
+
+Elf file type is DYN (Shared object file)  #s是一个共享对象
+Entry point 0x8a0
+There are 7 program headers, starting at offset 64
+
+Program Headers:
+  Type           Offset             VirtAddr           PhysAddr
+                 FileSiz            MemSiz              Flags  Align
+  LOAD           0x0000000000000000 0x0000000000000000 0x0000000000000000
+                 0x0000000000000b74 0x0000000000000b74  R E    0x10000
+  LOAD           0x000000000000fd88 0x000000000001fd88 0x000000000001fd88
+                 0x00000000000002a8 0x00000000000002b8  RW     0x10000
+  DYNAMIC        0x000000000000fda8 0x000000000001fda8 0x000000000001fda8
+                 0x0000000000000200 0x0000000000000200  RW     0x8
+  NOTE           0x00000000000001c8 0x00000000000001c8 0x00000000000001c8
+                 0x0000000000000024 0x0000000000000024  R      0x4
+  GNU_EH_FRAME   0x0000000000000a54 0x0000000000000a54 0x0000000000000a54
+                 0x0000000000000044 0x0000000000000044  R      0x4
+  GNU_STACK      0x0000000000000000 0x0000000000000000 0x0000000000000000
+                 0x0000000000000000 0x0000000000000000  RW     0x10
+  GNU_RELRO      0x000000000000fd88 0x000000000001fd88 0x000000000001fd88
+                 0x0000000000000278 0x0000000000000278  R      0x1
+
+ Section to Segment mapping:
+  Segment Sections...
+   00     .note.gnu.build-id .gnu.hash .dynsym .dynstr .gnu.version .gnu.version_r .rela.dyn .rela.plt .init .plt .text .fini .rodata .eh_frame_hdr .eh_frame 
+   01     .init_array .fini_array .data.rel.ro .dynamic .got .got.plt .bss 
+   02     .dynamic 
+   03     .note.gnu.build-id 
+   04     .eh_frame_hdr 
+   05     
+   06     .init_array .fini_array .data.rel.ro .dynamic .got 
 ```
