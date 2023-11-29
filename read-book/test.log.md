@@ -589,3 +589,249 @@ Program Headers:
    05     
    06     .init_array .fini_array .data.rel.ro .dynamic .got 
 ```
+
+查看 动态链接的可执行文件的段， 其中包含了.got, global offset table ， 全局偏移表， 用来间接寻址
+```bash
+[root@9d0875627904 test_dynamic_link]# objdump -h build/bin/run_main 
+
+build/bin/run_main:     file format elf64-littleaarch64
+
+Sections:
+Idx Name          Size      VMA               LMA               File off  Algn
+  0 .interp       0000001b  0000000000400238  0000000000400238  00000238  2**0
+                  CONTENTS, ALLOC, LOAD, READONLY, DATA
+  1 .note.ABI-tag 00000020  0000000000400254  0000000000400254  00000254  2**2
+                  CONTENTS, ALLOC, LOAD, READONLY, DATA
+  2 .note.gnu.build-id 00000024  0000000000400274  0000000000400274  00000274  2**2
+                  CONTENTS, ALLOC, LOAD, READONLY, DATA
+  3 .gnu.hash     00000040  0000000000400298  0000000000400298  00000298  2**3
+                  CONTENTS, ALLOC, LOAD, READONLY, DATA
+  4 .dynsym       00000168  00000000004002d8  00000000004002d8  000002d8  2**3  # 动态符号表
+                  CONTENTS, ALLOC, LOAD, READONLY, DATA
+  5 .dynstr       00000132  0000000000400440  0000000000400440  00000440  2**0
+                  CONTENTS, ALLOC, LOAD, READONLY, DATA
+  6 .gnu.version  0000001e  0000000000400572  0000000000400572  00000572  2**1
+                  CONTENTS, ALLOC, LOAD, READONLY, DATA
+  7 .gnu.version_r 00000020  0000000000400590  0000000000400590  00000590  2**3
+                  CONTENTS, ALLOC, LOAD, READONLY, DATA
+  8 .rela.dyn     00000048  00000000004005b0  00000000004005b0  000005b0  2**3
+                  CONTENTS, ALLOC, LOAD, READONLY, DATA
+  9 .rela.plt     00000078  00000000004005f8  00000000004005f8  000005f8  2**3
+                  CONTENTS, ALLOC, LOAD, READONLY, DATA
+ 10 .init         00000014  0000000000400670  0000000000400670  00000670  2**2
+                  CONTENTS, ALLOC, LOAD, READONLY, CODE
+ 11 .plt          00000070  0000000000400690  0000000000400690  00000690  2**4
+                  CONTENTS, ALLOC, LOAD, READONLY, CODE
+ 12 .text         000001ac  0000000000400700  0000000000400700  00000700  2**3
+                  CONTENTS, ALLOC, LOAD, READONLY, CODE
+ 13 .fini         00000010  00000000004008ac  00000000004008ac  000008ac  2**2
+                  CONTENTS, ALLOC, LOAD, READONLY, CODE
+ 14 .rodata       00000010  00000000004008c0  00000000004008c0  000008c0  2**3
+                  CONTENTS, ALLOC, LOAD, READONLY, DATA
+ 15 .eh_frame_hdr 00000044  00000000004008d0  00000000004008d0  000008d0  2**2
+                  CONTENTS, ALLOC, LOAD, READONLY, DATA
+ 16 .eh_frame     000000e4  0000000000400918  0000000000400918  00000918  2**3
+                  CONTENTS, ALLOC, LOAD, READONLY, DATA
+ 17 .init_array   00000008  000000000041fd98  000000000041fd98  0000fd98  2**3
+                  CONTENTS, ALLOC, LOAD, DATA
+ 18 .fini_array   00000008  000000000041fda0  000000000041fda0  0000fda0  2**3
+                  CONTENTS, ALLOC, LOAD, DATA
+ 19 .dynamic      00000220  000000000041fda8  000000000041fda8  0000fda8  2**3
+                  CONTENTS, ALLOC, LOAD, DATA
+ 20 .got          00000020  000000000041ffc8  000000000041ffc8  0000ffc8  2**3 #用来保存全局变量引用
+                  CONTENTS, ALLOC, LOAD, DATA
+ 21 .got.plt      00000040  000000000041ffe8  000000000041ffe8  0000ffe8  2**3 #用来保存函数引用的地址
+                  CONTENTS, ALLOC, LOAD, DATA
+ 22 .data         00000004  0000000000420028  0000000000420028  00010028  2**0
+                  CONTENTS, ALLOC, LOAD, DATA
+ 23 .bss          00000004  000000000042002c  000000000042002c  0001002c  2**0
+                  ALLOC
+ 24 .comment      00000058  0000000000000000  0000000000000000  0001002c  2**0
+                  CONTENTS, READONLY
+ 25 .gnu.build.attributes 00001988  0000000000420030  0000000000420030  00010084  2**2
+                  CONTENTS, READONLY
+```
+
+
+贴上一段chatgpt 对一些概念的解释
+
+.got.plt和.plt是Unix和类Unix系统中的两种特殊的符号表，它们在动态链接的过程中起到了关键的作用。
+
+1. .plt (Procedure Linkage Table):  # 这个跟代码段放在一起， 地址无关的
+
+    过程链接表是一种特殊的跳转表，运行时链接器可以修改这个表使得程序跳转到正确的函数地址。当程序第一次尝试调用一个动态链接库中的函数时，它会首先跳转到一个在PLT中的"桩"函数。这个桩函数会调用运行时链接器，运行时链接器会查找正确的函数地址，然后更新.got.plt中对应的条目。后续的函数调用将直接跳转到正确的函数地址。
+
+2. .got.plt (Global Offset Table for PLT):   #保存的是函数， 这个跟数据段放在一起， 可修改
+
+    **全局偏移表用于存储动态链接的函数地址**。每个动态链接的函数在GOT中都有一个条目，这个条目原本指向PLT中的一个桩函数，但在函数第一次被调用之后，运行时链接器会将这个条目更新为正确的函数地址。GOT是必要的，因为程序的代码段通常是只读的，而GOT位于数据段，可以在运行时被修改。
+
+总的来说，.plt和.got.plt是动态链接过程的关键部分，它们使得程序可以在运行时加载和链接到动态链接库中的函数。
+
+
+
+
+
+查看动态链接的可执行文件的段的内容， 其中有一个叫做.interp  
+```bash
+
+[root@9d0875627904 test_dynamic_link]# objdump -s build/bin/run_main 
+
+build/bin/run_main:     file format elf64-littleaarch64
+
+Contents of section .interp: # 这个就是动态连接器的路径
+ 400238 2f6c6962 2f6c642d 6c696e75 782d6161  /lib/ld-linux-aa
+ 400248 72636836 342e736f 2e3100             rch64.so.1.     
+Contents of section .note.ABI-tag:
+ 400254 04000000 10000000 01000000 474e5500  ............GNU.
+ 400264 00000000 03000000 07000000 00000000  ................
+Contents of section .note.gnu.build-id:
+ 400274 04000000 14000000 03000000 474e5500  ............GNU.
+ 400284 16b33af7 785829e8 b1b2a81e 874a7d45  ..:.xX)....
+
+```
+
+
+软连接 指向../lib64/ld-2.28.so， 真正的动态链接器
+```
+[root@9d0875627904 test_dynamic_link]# ls /lib/ld-linux-aarch64.so.1 -l
+lrwxrwxrwx 1 root root 19 Aug 24  2021 /lib/ld-linux-aarch64.so.1 -> ../lib64/ld-2.28.so
+```
+
+
+查看动态链接的文件的重定位表
+```bash
+[root@9d0875627904 build]# readelf -r lib/libhellolib.so 
+
+Relocation section '.rela.dyn' at offset 0x670 contains 11 entries:
+  Offset          Info           Type           Sym. Value    Sym. Name + Addend
+00000001fd88  000000000403 R_AARCH64_RELATIV                    968
+00000001fd90  000000000403 R_AARCH64_RELATIV                    a08
+00000001fd98  000000000403 R_AARCH64_RELATIV                    920
+00000001fda0  000000000403 R_AARCH64_RELATIV                    1fda0
+00000001ffb0  000300000401 R_AARCH64_GLOB_DA 0000000000000000 _ZSt4endlIcSt11char_tr@GLIBCXX_3.4 + 0
+00000001ffb8  000400000401 R_AARCH64_GLOB_DA 0000000000000000 __cxa_finalize@GLIBC_2.17 + 0
+00000001ffc0  000800000401 R_AARCH64_GLOB_DA 0000000000000000 _ZSt4cout@GLIBCXX_3.4 + 0
+00000001ffc8  000a00000401 R_AARCH64_GLOB_DA 0000000000000000 _ITM_deregisterTMClone + 0
+00000001ffd0  000b00000401 R_AARCH64_GLOB_DA 0000000000000000 __gmon_start__ + 0
+00000001ffd8  000c00000401 R_AARCH64_GLOB_DA 0000000000000000 _ITM_registerTMCloneTa + 0
+00000001ffe0  000d00000401 R_AARCH64_GLOB_DA 0000000000000000 _ZNSt8ios_base4InitD1E@GLIBCXX_3.4 + 0
+
+Relocation section '.rela.plt' at offset 0x778 contains 6 entries:
+  Offset          Info           Type           Sym. Value    Sym. Name + Addend
+000000020000  000400000402 R_AARCH64_JUMP_SL 0000000000000000 __cxa_finalize@GLIBC_2.17 + 0
+000000020008  000500000402 R_AARCH64_JUMP_SL 0000000000000000 _ZStlsISt11char_traits@GLIBCXX_3.4 + 0
+000000020010  000600000402 R_AARCH64_JUMP_SL 0000000000000000 _ZNSolsEPFRSoS_E@GLIBCXX_3.4 + 0
+000000020018  000700000402 R_AARCH64_JUMP_SL 0000000000000000 __cxa_atexit@GLIBC_2.17 + 0
+000000020020  000900000402 R_AARCH64_JUMP_SL 0000000000000000 _ZNSt8ios_base4InitC1E@GLIBCXX_3.4 + 0
+000000020028  000b00000402 R_AARCH64_JUMP_SL 0000000000000000 __gmon_start__ + 0
+```
+
+从上面可以看到三种type
+R_AARCH64_RELATIV   
+R_AARCH64_GLOB_DA
+R_AARCH64_JUMP_SL
+下面两种被修正的位置直接填入符号的地址即可
+
+
+
+查看dynamic section 
+```bash
+[root@9d0875627904 test_dynamic_link]# readelf -d build/lib/libhellolib.so 
+
+Dynamic section at offset 0xfda8 contains 28 entries:
+  Tag        Type                         Name/Value
+ 0x0000000000000001 (NEEDED)             Shared library: [libstdc++.so.6]
+ 0x0000000000000001 (NEEDED)             Shared library: [libm.so.6]
+ 0x0000000000000001 (NEEDED)             Shared library: [libgcc_s.so.1]
+ 0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]
+ 0x000000000000000e (SONAME)             Library soname: [libhellolib.so]
+
+ ```
+
+
+
+ 在x86 架构的服务器上
+ test.c
+ ```c
+ int main()
+ {
+      return 123;
+ }
+```
+
+`gcc -S test.c`
+```asm
+main:
+.LFB0:
+        .cfi_startproc
+        pushq   %rbp               // 压入 帧指针
+        .cfi_def_cfa_offset 16
+        .cfi_offset 6, -16
+        movq    %rsp, %rbp         // 将 帧指针寄存器更新栈顶
+        .cfi_def_cfa_register 6
+        movl    $123, %eax         // 返回值存放在 eax 寄存器
+        popq    %rbp               // 恢复 帧指针寄存器
+        .cfi_def_cfa 7, 8
+        ret
+        .cfi_endproc
+```
+
+例子2
+```c
+int fun()
+{
+	int a = 1;
+	return a;
+}
+
+int main()
+{
+	fun();
+	return 123;
+}
+```
+
+
+汇编代码
+```asm
+        .file   "test.c"
+        .text
+        .globl  fun
+        .type   fun, @function
+fun:
+.LFB0:
+        .cfi_startproc
+        pushq   %rbp // 保存在栈上
+        .cfi_def_cfa_offset 16
+        .cfi_offset 6, -16
+        movq    %rsp, %rbp 
+        .cfi_def_cfa_register 6
+        movl    $1, -4(%rbp)    // 局部变量赋值， 往下生长
+        movl    -4(%rbp), %eax
+        popq    %rbp
+        .cfi_def_cfa 7, 8
+        ret
+        .cfi_endproc
+.LFE0:
+        .size   fun, .-fun
+        .globl  main
+        .type   main, @function
+main:
+.LFB1:
+        .cfi_startproc
+        pushq   %rbp
+        .cfi_def_cfa_offset 16
+        .cfi_offset 6, -16
+        movq    %rsp, %rbp
+        .cfi_def_cfa_register 6
+        movl    $0, %eax
+        call    fun
+        movl    $123, %eax
+        popq    %rbp
+        .cfi_def_cfa 7, 8
+        ret
+        .cfi_endproc
+.LFE1:
+
+```
+上面的汇编代码中看不到rsp 寄存器的恢复， 猜测应该时自动的
